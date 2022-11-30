@@ -355,7 +355,7 @@ resource "aws_db_instance" "db" {
   db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
   engine_version           = "9.4.5"
-  instance_class           = "db.t2.micro"
+  instance_class           = "db.t3.micro"
   #multi_az                 = false
   #parameter_group_name     = "mydbparamgroup1" # if you have tuned it
   username                 = var.POSTGRES_USER
