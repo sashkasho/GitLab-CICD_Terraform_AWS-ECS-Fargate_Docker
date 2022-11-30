@@ -64,8 +64,8 @@ deploy-job:
     - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
     - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
-    - terraform taint aws_ecs_task_definition.task_definition_frontend -lock=false
-    - terraform taint aws_ecs_task_definition.task_definition_backend -lock=false
+    # - terraform taint aws_ecs_task_definition.task_definition_frontend -lock=false
+    # - terraform taint aws_ecs_task_definition.task_definition_backend -lock=false
     - terraform plan -lock=false
     - terraform apply -auto-approve -lock=false
 
