@@ -349,7 +349,7 @@ resource "aws_ecs_service" "ecs_service_backend" {
 resource "aws_db_instance" "db" {
   #backup_retention_period  = 2   # in days
   db_name              = "app_db"
-  identifier               = "app_db1"
+  identifier               = "app-db1"
   allocated_storage        = 5 # gigabytes
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
   db_subnet_group_name     = aws_db_subnet_group.private.name
