@@ -1,7 +1,12 @@
 #instance_type = "t3.micro"
 #aws_security_group_name = "app-alb-sg"
-ecr_image_frontend = "sholalexandra/app-frontend:latest"
-ecr_image_backend = "sholalexandra/app-backend:latest"
+/* ecr_image_frontend = "sholalexandra/app-frontend:latest"
+ecr_image_backend = "sholalexandra/app-backend:latest" */
+
+ecr_image_frontend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-backend-gitlab:latest"
+ecr_image_backend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-frontend-gitlab:latest"
+
+
 aws_security_group_description = "Inbound: 80, Outbound: all"
 aws_security_group_description_ecs = "Inbound: 80 from ALB Security Group, Outbound: all"
 secondary_private_ips = [ "10.0.1.100" ]

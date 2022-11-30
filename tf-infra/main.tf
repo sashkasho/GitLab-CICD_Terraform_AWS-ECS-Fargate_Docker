@@ -354,14 +354,14 @@ resource "aws_db_instance" "db" {
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
   db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
-  engine_version           = "9.4.5"
+  engine_version           = "10"
   instance_class           = "db.t3.micro"
   #multi_az                 = false
   #parameter_group_name     = "mydbparamgroup1" # if you have tuned it
   username                 = var.POSTGRES_USER
   #password                 = "${trimspace(file("${path.module}/secrets/mydb1-password.txt"))}"
   password                 = var.POSTGRES_PASSWORD
-  #port                     = 5432
+  port                     = 5432
   #publicly_accessible      = true
   storage_encrypted        = true # you should always do this
   #storage_type             = "gp2"
