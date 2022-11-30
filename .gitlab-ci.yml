@@ -66,8 +66,8 @@ deploy-job:
     - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
     - terraform taint aws_ecs_task_definition.task_definition_frontend
     - terraform taint aws_ecs_task_definition.task_definition_backend
-    # - terraform plan
-    - terraform apply -auto-approve
+    - terraform plan -lock=false
+    - terraform apply -auto-approve -lock=false
 
 
 destroy-job:
@@ -79,7 +79,7 @@ destroy-job:
       - '/usr/bin/env'
       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
   script:
-    - terraform destroy --auto-approve
+    - terraform destroy --auto-approve -lock=false
   when: manual 
 
 
