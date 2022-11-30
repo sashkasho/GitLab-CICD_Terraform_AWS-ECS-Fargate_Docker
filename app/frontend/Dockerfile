@@ -3,7 +3,7 @@ WORKDIR /usr/src/app
 ADD package*.json ./
 RUN npm install
 COPY . . 
-RUN npm run build:prod
+#RUN npm run build:prod
 CMD ["npm", "start"]
 
 FROM nginx:1.13.3-alpine
