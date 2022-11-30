@@ -72,7 +72,7 @@ resource "aws_subnet" "private_subnet" {
 resource "aws_eip" "nat_eip" {
   count = length(var.availability_zone)
   vpc        = true
-  depends_on = [aws_internet_gateway.test_igw.id]
+  depends_on = [aws_internet_gateway.test_igw]
 }
 
 # NAT for Private Subnet
