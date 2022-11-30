@@ -1,0 +1,85 @@
+variables:
+  PROJECT_PATH: "$CI_PROJECT_DIR"  #/home/gitlab-runner/builds/yhqRUGix/0/lecture_6/online_shop_application
+  APP_OUTPUT_PATH_FRONTEND: "$CI_PROJECT_DIR/frontend/dist/shop"
+  APP_CACHE_PATH_FRONTEND: "$CI_PROJECT_DIR/frontend/node_modules"
+  APP_OUTPUT_PATH_BACKEND: "$CI_PROJECT_DIR/backend/target"
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  AWS_REGION: ca-central-1
+  AWS_ACCOUNT_ID: 910702143091
+
+stages:
+  # - build
+  # - deploy
+  - destroy
+
+# build-push-job:
+#   stage: build
+#   image: 
+#     name: amazon/aws-cli
+#     entrypoint: [""]
+#   services:
+#     - docker:dind
+#   variables:
+#     IMAGE_NAME_BACK: app-backend-gitlab
+#     IMAGE_NAME_FRONT: app-frontend-gitlab
+#   before_script:
+#     - amazon-linux-extras install docker
+#     - aws --version
+#     - docker --version
+#   script:
+#     - echo "app/backend/"
+#     #- cd app/backend/
+#     #- docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
+#     #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+#     #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
+#     #- cd ../frontend/
+#     - echo "app/frontend/"
+#     ##- cd app/frontend/
+#     #- docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
+#     #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+#     #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
+
+
+# deploy-job:
+#   stage: deploy
+#   image:
+#     #name: hashicorp/terraform:light
+#     name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
+#     entrypoint:
+#       - '/usr/bin/env'
+#       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
+#   variables:
+#     IMAGE_NAME_BACK: app-backend-gitlab
+#     IMAGE_NAME_FRONT: app-frontend-gitlab
+#   script:
+#     # - sed "s|{{TF_TOKEN}}|$TF_TOKEN|" credentials.tfrc.json > /root/.terraformrc
+#     # - cat /root/.terraformrc
+#     - cd tf-infra/global/
+#     - terraform init -backend-config="state.config"
+#     # - terraform init
+#     # - terraform validate
+#     - cd ..
+#     - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+#     - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+#     - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
+#     - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
+#     # - terraform taint aws_ecs_task_definition.task_definition_frontend -lock=false
+#     # - terraform taint aws_ecs_task_definition.task_definition_backend -lock=false
+#     - terraform plan -lock=false
+#     - terraform apply -auto-approve -lock=false
+
+
+destroy-job:
+  stage: destroy
+  image:
+    #name: hashicorp/terraform:light
+    name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
+  script:
+    - terraform destroy --auto-approve -lock=false
+  # when: manual 
+
+

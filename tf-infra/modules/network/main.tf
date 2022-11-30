@@ -55,7 +55,7 @@ resource "aws_route_table_association" "public_rt_assoc" {
   subnet_id = element(aws_subnet.public_subnet.*.id, count.index)
 }
 
-/* # Private Subnet
+# Private Subnet
 resource "aws_subnet" "private_subnet" {
   count = length(var.availability_zone)
   vpc_id = aws_vpc.test_vpc.id
@@ -72,7 +72,7 @@ resource "aws_subnet" "private_subnet" {
 resource "aws_eip" "nat_eip" {
   count = length(var.availability_zone)
   vpc        = true
-  depends_on = [aws_internet_gateway.test_igw.id]
+  depends_on = [aws_internet_gateway.test_igw]
 }
 
 # NAT for Private Subnet
@@ -107,4 +107,4 @@ resource "aws_route_table_association" "private_rt_assoc" {
   route_table_id = element(aws_route_table.private_rt.*.id, count.index)
   #subnet_id = aws_subnet.test_subnet[count.index].id
   subnet_id = element(aws_subnet.private_subnet.*.id, count.index)
-} */
+}
