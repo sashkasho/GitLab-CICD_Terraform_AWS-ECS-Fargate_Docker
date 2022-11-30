@@ -1,7 +1,7 @@
 FROM maven:3.6.3-openjdk-11-slim AS build
 COPY src /src
 COPY pom.xml .
-RUN mvn package
+RUN mvn package -DskipTests
 
 FROM openjdk:11-oracle
 VOLUME /tmp
