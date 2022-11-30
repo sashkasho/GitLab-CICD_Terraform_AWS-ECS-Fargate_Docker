@@ -352,6 +352,7 @@ resource "aws_db_instance" "db" {
   identifier               = "app-db1"
   allocated_storage        = 5 # gigabytes
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
+  db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
   engine_version           = "9.4.5"
   instance_class           = "db.t3.micro"
