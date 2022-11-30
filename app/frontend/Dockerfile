@@ -1,10 +1,11 @@
 FROM node:16.18.0 AS builder
-ARG CONFIGURATION='prod'
+#ARG CONFIGURATION='prod'
 WORKDIR /app 
 COPY package.json .
 RUN npm install --legacy-peer-deps
 COPY . . 
-RUN npm run build --  --output-path=dist --configuration=$CONFIGURATION --output-hashing=all
+#RUN npm run build --  --output-path=dist --configuration=$CONFIGURATION --output-hashing=all
+RUN npm run build
 #CMD ["npm", "start"]
 
 FROM nginx:1.13.3-alpine
