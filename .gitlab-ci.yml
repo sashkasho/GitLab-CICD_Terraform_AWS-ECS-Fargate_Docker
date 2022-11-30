@@ -10,7 +10,7 @@ variables:
 
 stages:
   # - build
-  - deploy
+  # - deploy
   - destroy
 
 # build-push-job:
@@ -41,33 +41,33 @@ stages:
 #     #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
 
 
-deploy-job:
-  stage: deploy
-  image:
-    #name: hashicorp/terraform:light
-    name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
-    entrypoint:
-      - '/usr/bin/env'
-      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
-  variables:
-    IMAGE_NAME_BACK: app-backend-gitlab
-    IMAGE_NAME_FRONT: app-frontend-gitlab
-  script:
-    # - sed "s|{{TF_TOKEN}}|$TF_TOKEN|" credentials.tfrc.json > /root/.terraformrc
-    # - cat /root/.terraformrc
-    - cd tf-infra/global/
-    - terraform init -backend-config="state.config"
-    # - terraform init
-    # - terraform validate
-    - cd ..
-    - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-    - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-    - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
-    - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
-    # - terraform taint aws_ecs_task_definition.task_definition_frontend -lock=false
-    # - terraform taint aws_ecs_task_definition.task_definition_backend -lock=false
-    - terraform plan -lock=false
-    - terraform apply -auto-approve -lock=false
+# deploy-job:
+#   stage: deploy
+#   image:
+#     #name: hashicorp/terraform:light
+#     name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
+#     entrypoint:
+#       - '/usr/bin/env'
+#       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
+#   variables:
+#     IMAGE_NAME_BACK: app-backend-gitlab
+#     IMAGE_NAME_FRONT: app-frontend-gitlab
+#   script:
+#     # - sed "s|{{TF_TOKEN}}|$TF_TOKEN|" credentials.tfrc.json > /root/.terraformrc
+#     # - cat /root/.terraformrc
+#     - cd tf-infra/global/
+#     - terraform init -backend-config="state.config"
+#     # - terraform init
+#     # - terraform validate
+#     - cd ..
+#     - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+#     - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+#     - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
+#     - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
+#     # - terraform taint aws_ecs_task_definition.task_definition_frontend -lock=false
+#     # - terraform taint aws_ecs_task_definition.task_definition_backend -lock=false
+#     - terraform plan -lock=false
+#     - terraform apply -auto-approve -lock=false
 
 
 destroy-job:
@@ -80,6 +80,6 @@ destroy-job:
       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
   script:
     - terraform destroy --auto-approve -lock=false
-  when: manual 
+  # when: manual 
 
 
