@@ -345,7 +345,6 @@ resource "aws_ecs_service" "ecs_service_backend" {
   depends_on = [aws_alb_listener.listener_http_back]
 }
 
-<<<<<<< HEAD
 # RDS DB ( PostgreSQL )
 resource "aws_db_instance" "db" {
   #backup_retention_period  = 2   # in days
@@ -355,7 +354,7 @@ resource "aws_db_instance" "db" {
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
   engine                   = "postgres"
   engine_version           = "9.4.5"
-  instance_class           = "db.t2.micro"
+  instance_class           = "db.t3.micro"
   #multi_az                 = false
   #parameter_group_name     = "mydbparamgroup1" # if you have tuned it
   username                 = var.POSTGRES_USER
@@ -368,58 +367,33 @@ resource "aws_db_instance" "db" {
   vpc_security_group_ids   = [aws_security_group.db.id]
   skip_final_snapshot    = true
 }
-=======
-# # RDS DB ( PostgreSQL )
-# resource "aws_db_instance" "db" {
-#   #backup_retention_period  = 2   # in days
-#   db_name              = "app_db"
-#   identifier               = "app-db1"
-#   allocated_storage        = 5 # gigabytes
-#   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
-#   db_subnet_group_name     = aws_db_subnet_group.private.name
-#   engine                   = "postgres"
-#   engine_version           = "9.4.5"
-#   instance_class           = "db.t3.micro"
-#   #multi_az                 = false
-#   #parameter_group_name     = "mydbparamgroup1" # if you have tuned it
-#   username                 = var.POSTGRES_USER
-#   #password                 = "${trimspace(file("${path.module}/secrets/mydb1-password.txt"))}"
-#   password                 = var.POSTGRES_PASSWORD
-#   port                     = 5432
-#   #publicly_accessible      = true
-#   storage_encrypted        = true # you should always do this
-#   #storage_type             = "gp2"
-#   vpc_security_group_ids   = [aws_security_group.db.id]
-#   skip_final_snapshot    = true
-# }
->>>>>>> aa9e04721cabf3f93c05e7d3245151b16e8e2afe
 
-# resource "aws_db_subnet_group" "private" {
-#   name       = "private"
-#   subnet_ids = module.network_block.private_subnets_id[*]
+resource "aws_db_subnet_group" "private" {
+  name       = "private"
+  subnet_ids = module.network_block.private_subnets_id[*]
 
-#   tags = {
-#     Name = "app-private-subnet-group"
-#   }
-# }
+  tags = {
+    Name = "app-private-subnet-group"
+  }
+}
 
-# resource "aws_security_group" "db" {
-#   name = "app_db"
-#   description = "RDS postgres servers"
-#   vpc_id = module.network_block.vpc_id
+resource "aws_security_group" "db" {
+  name = "app_db"
+  description = "RDS postgres servers"
+  vpc_id = module.network_block.vpc_id
 
-#   # Only postgres in
-#   ingress {
-#     from_port = 5432
-#     to_port = 5432
-#     protocol = "tcp"
-#     cidr_blocks = var.security_group_cidr_blocks
-#   }
+  # Only postgres in
+  ingress {
+    from_port = 5432
+    to_port = 5432
+    protocol = "tcp"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
 
-#   egress {
-#     from_port = 0
-#     to_port = 0
-#     protocol = "-1"
-#     cidr_blocks = var.security_group_cidr_blocks
-#   }
-# }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
+}
