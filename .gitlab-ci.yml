@@ -9,39 +9,43 @@ variables:
   AWS_ACCOUNT_ID: 910702143091
 
 stages:
-  - build
+  # - build
   - deploy
+  - destroy
 
-build-push-job:
-  stage: build
-  image: 
-    name: amazon/aws-cli
-    entrypoint: [""]
-  services:
-    - docker:dind
-  variables:
-    IMAGE_NAME_BACK: app-backend-gitlab
-    IMAGE_NAME_FRONT: app-frontend-gitlab
-  before_script:
-    - amazon-linux-extras install docker
-    - aws --version
-    - docker --version
-  script:
-    #- cd app/backend/
-    #- docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
-    #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-    #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
-    #- cd ../frontend/
-    - cd app/frontend/
-    - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
-    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
+# build-push-job:
+#   stage: build
+#   image: 
+#     name: amazon/aws-cli
+#     entrypoint: [""]
+#   services:
+#     - docker:dind
+#   variables:
+#     IMAGE_NAME_BACK: app-backend-gitlab
+#     IMAGE_NAME_FRONT: app-frontend-gitlab
+#   before_script:
+#     - amazon-linux-extras install docker
+#     - aws --version
+#     - docker --version
+#   script:
+#     - echo "app/backend/"
+#     #- cd app/backend/
+#     #- docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
+#     #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+#     #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
+#     #- cd ../frontend/
+#     - echo "app/frontend/"
+#     ##- cd app/frontend/
+#     #- docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
+#     #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+#     #- docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
 
 
 deploy-job:
   stage: deploy
   image:
-    name: hashicorp/terraform:light
+    #name: hashicorp/terraform:light
+    name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
     entrypoint:
       - '/usr/bin/env'
       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
@@ -51,9 +55,11 @@ deploy-job:
   script:
     # - sed "s|{{TF_TOKEN}}|$TF_TOKEN|" credentials.tfrc.json > /root/.terraformrc
     # - cat /root/.terraformrc
-    - cd tf-infra/
+    - cd tf-infra/global/
+    - terraform init -backend-config="state.config"
     # - terraform init
     # - terraform validate
+    - cd ..
     - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
     - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
@@ -63,5 +69,17 @@ deploy-job:
     # - terraform plan
     - terraform apply -auto-approve
 
+
+destroy-job:
+  stage: destroy
+  image:
+    #name: hashicorp/terraform:light
+    name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
+  script:
+    - terraform destroy --auto-approve
+  when: manual 
 
 
