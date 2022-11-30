@@ -352,6 +352,7 @@ resource "aws_db_instance" "db" {
   identifier               = "app_db1"
   allocated_storage        = 5 # gigabytes
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
+  db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
   engine_version           = "9.4.5"
   instance_class           = "db.t2.micro"
@@ -360,12 +361,21 @@ resource "aws_db_instance" "db" {
   username                 = var.POSTGRES_USER
   #password                 = "${trimspace(file("${path.module}/secrets/mydb1-password.txt"))}"
   password                 = var.POSTGRES_PASSWORD
-  #port                     = 5432
+  port                     = 5432
   #publicly_accessible      = true
   storage_encrypted        = true # you should always do this
   #storage_type             = "gp2"
   vpc_security_group_ids   = [aws_security_group.db.id]
   skip_final_snapshot    = true
+}
+
+resource "aws_db_subnet_group" "private" {
+  name       = "private"
+  subnet_ids = module.network_block.private_subnets_id[*]
+
+  tags = {
+    Name = "app-private-subnet-group"
+  }
 }
 
 resource "aws_security_group" "db" {
