@@ -35,13 +35,7 @@ data "aws_ami" "ubuntu" {
     values = ["hvm"]
   }
 }
-
-data "template_file" "userdata_sh" {
-  template = file("./scripts/userdata.sh")
-  vars = {
-    vpc_id = module.network_block.vpc_id
-  }
-} */
+ */
 
 # NETWORK MODULE
 module "network_block" {
@@ -236,14 +230,24 @@ resource "aws_ecs_cluster" "ecs_cluster" {
   name = "app_ecs_cluster"
 }
 
-/* resource "aws_cloudwatch_log_group" "log_group" {
-  name = "app-log-group"
-  retention_in_days = 2
+resource "aws_cloudwatch_log_group" "app_frontend" {
+  name = "app-log-group-frontend"
+  retention_in_days = 7
 
   tags = {
-    Name = "app-log-group"
+    Name = "app-log-group-frontend"
   }
-} */
+}
+
+resource "aws_cloudwatch_log_group" "app_backend" {
+  name = "app-log-group-backend"
+  retention_in_days = 7
+
+  tags = {
+    Name = "app-log-group-backend"
+  }
+}
+
 
 resource "aws_ecs_task_definition" "task_definition_frontend" {
   family                = "frontend"
@@ -266,7 +270,17 @@ resource "aws_ecs_task_definition" "task_definition_frontend" {
             "hostPort": 80,
             "protocol": "tcp"
         }
-    ]
+    ],
+    "privileged": false,
+    "readonlyRootFilesystem": false,
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "${aws_cloudwatch_log_group.app_frontend.name}",
+            "awslogs-region": "${var.region}",
+            "awslogs-stream-prefix": "frontend"
+        }
+    }
  }
 ]
 DEFINITION
@@ -293,7 +307,17 @@ resource "aws_ecs_task_definition" "task_definition_backend" {
             "hostPort": 8080,
             "protocol": "tcp"
         }
-    ]
+    ],
+    "privileged": false,
+    "readonlyRootFilesystem": false,
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "${aws_cloudwatch_log_group.app_backend.name}",
+            "awslogs-region": "${var.region}",
+            "awslogs-stream-prefix": "backend"
+        }
+    }
  }
 ]
 DEFINITION
@@ -306,6 +330,7 @@ resource "aws_ecs_service" "ecs_service_frontend" {
   launch_type         = "FARGATE"
   desired_count       = 2
   scheduling_strategy = "REPLICA"
+  deployment_minimum_healthy_percent = 0
 
   network_configuration {
     subnets          = module.network_block.public_subnets_id[*]
@@ -329,6 +354,7 @@ resource "aws_ecs_service" "ecs_service_backend" {
   launch_type         = "FARGATE"
   desired_count       = 2
   scheduling_strategy = "REPLICA"
+  deployment_minimum_healthy_percent = 0
 
   network_configuration {
     subnets          = module.network_block.public_subnets_id[*]
@@ -350,7 +376,6 @@ resource "aws_db_instance" "db" {
   #backup_retention_period  = 2   # in days
   db_name              = "app_db"
   identifier               = "app-db1"
-  allocated_storage        = 5 # gigabytes
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
   db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
@@ -362,11 +387,13 @@ resource "aws_db_instance" "db" {
   #password                 = "${trimspace(file("${path.module}/secrets/mydb1-password.txt"))}"
   password                 = var.POSTGRES_PASSWORD
   port                     = 5432
-  #publicly_accessible      = true
-  storage_encrypted        = true # you should always do this
-  #storage_type             = "gp2"
+  publicly_accessible      = false
+  #storage_encrypted        = true # you should always do this
+  allocated_storage        = 25 # gigabytes
+  storage_type             = "gp2"
   vpc_security_group_ids   = [aws_security_group.db.id]
   skip_final_snapshot    = true
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 }
 
 resource "aws_db_subnet_group" "private" {
