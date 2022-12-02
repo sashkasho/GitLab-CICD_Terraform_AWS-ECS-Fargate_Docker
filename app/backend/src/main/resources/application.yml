@@ -2,8 +2,9 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    #url: jdbc:postgresql://${DB_HOST}/${DB_NAME}
     url: jdbc:postgresql://localhost/postgres
     platform: postgres
     initialization-mode: always

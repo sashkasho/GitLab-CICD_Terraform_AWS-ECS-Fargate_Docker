@@ -31,6 +31,11 @@ variable "POSTGRES_PASSWORD" {
     default = "postgres"
 }
 
+variable "DB_NAME" {
+    type = string
+    default = "postgres"
+}
+
 variable "aws_vpc_cidr_block" {
     type = string
     default = "10.0.0.0/16"

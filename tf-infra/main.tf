@@ -23,20 +23,6 @@ data "aws_iam_policy_document" "ecs_task_assume_role_policy" {
   }
 }
 
-/* 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-   filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
- */
-
 # NETWORK MODULE
 module "network_block" {
   source = "./modules/network"
@@ -49,21 +35,7 @@ module "network_block" {
   aws_route_table_route_cidr = "0.0.0.0/0"
 }
 
-# SERVER BLOCKS
-/* resource "aws_instance" "test_server" {
-  count = length(var.availability_zone)
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
-  vpc_security_group_ids = [aws_security_group.test_sg.id]
-  subnet_id = module.network_block.subnet_id[count.index]
-  key_name = aws_key_pair.test_key.key_name 
-  user_data = data.template_file.userdata_sh.rendered
-
-  tags = {
-    Name = "app_server-${count.index + 1}"
-  }
-} */
-
+# SECURITY GROUPS 
 resource "aws_security_group" "alb_sg" {
   name        = "app-alb-sg"
   description = var.aws_security_group_description
@@ -248,6 +220,56 @@ resource "aws_cloudwatch_log_group" "app_backend" {
   }
 }
 
+resource "aws_ecs_task_definition" "task_definition_backend" {
+  family                = "backend"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  network_mode             = "awsvpc"
+  cpu       = "256"
+  memory    = "512"
+  requires_compatibilities = ["FARGATE"]
+  container_definitions = <<DEFINITION
+[{
+    "name": "app_backend",
+    "image": "${var.ecr_image_backend}",
+    "cpu": 256,
+    "memory": 512,
+    "essential": true,
+    "networkMode": "awsvpc",
+    "portMappings": [
+        {
+            "containerPort": 8080,
+            "hostPort": 8080,
+            "protocol": "tcp"
+        }
+    ],
+    "environment": [
+        {
+            "name": "spring.datasource.username",
+            "value": "${var.POSTGRES_USER}"
+        },
+        {
+            "name": "spring.datasource.password",
+            "value": "${var.POSTGRES_PASSWORD}"
+        },
+        {
+            "name": "spring.datasource.url",
+            "value": "jdbc:postgresql://${aws_db_instance.db.endpoint}/${var.DB_NAME}"
+        }
+    ],
+    "privileged": false,
+    "readonlyRootFilesystem": false,
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "${aws_cloudwatch_log_group.app_backend.name}",
+            "awslogs-region": "${var.region}",
+            "awslogs-stream-prefix": "backend"
+        }
+    }
+ }
+]
+DEFINITION
+}
 
 resource "aws_ecs_task_definition" "task_definition_frontend" {
   family                = "frontend"
@@ -271,41 +293,10 @@ resource "aws_ecs_task_definition" "task_definition_frontend" {
             "protocol": "tcp"
         }
     ],
-    "privileged": false,
-    "readonlyRootFilesystem": false,
-    "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-            "awslogs-group": "${aws_cloudwatch_log_group.app_frontend.name}",
-            "awslogs-region": "${var.region}",
-            "awslogs-stream-prefix": "frontend"
-        }
-    }
- }
-]
-DEFINITION
-}
-
-resource "aws_ecs_task_definition" "task_definition_backend" {
-  family                = "backend"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  network_mode             = "awsvpc"
-  cpu       = "256"
-  memory    = "512"
-  requires_compatibilities = ["FARGATE"]
-  container_definitions = <<DEFINITION
-[{
-    "name": "app_backend",
-    "image": "${var.ecr_image_backend}",
-    "cpu": 256,
-    "memory": 512,
-    "essential": true,
-    "networkMode": "awsvpc",
-    "portMappings": [
+    "environment": [
         {
-            "containerPort": 8080,
-            "hostPort": 8080,
-            "protocol": "tcp"
+            "name": "dns_elb",
+            "value": "${aws_alb.test-alb.dns_name}"
         }
     ],
     "privileged": false,
@@ -313,38 +304,14 @@ resource "aws_ecs_task_definition" "task_definition_backend" {
     "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-            "awslogs-group": "${aws_cloudwatch_log_group.app_backend.name}",
+            "awslogs-group": "${aws_cloudwatch_log_group.app_frontend.name}",
             "awslogs-region": "${var.region}",
-            "awslogs-stream-prefix": "backend"
+            "awslogs-stream-prefix": "frontend-dns"
         }
     }
  }
 ]
 DEFINITION
-}
-
-resource "aws_ecs_service" "ecs_service_frontend" {
-  name                = "app_service_frontend"
-  cluster             = aws_ecs_cluster.ecs_cluster.id
-  task_definition     = aws_ecs_task_definition.task_definition_frontend.arn
-  launch_type         = "FARGATE"
-  desired_count       = 2
-  scheduling_strategy = "REPLICA"
-  deployment_minimum_healthy_percent = 0
-
-  network_configuration {
-    subnets          = module.network_block.public_subnets_id[*]
-    security_groups  = [aws_security_group.ecs_tasks_sg.id, aws_security_group.alb_sg.id]
-    assign_public_ip = true
-  }
-
-  load_balancer {
-    target_group_arn = aws_alb_target_group.target_gr_front.arn
-    container_name   = "app_frontend"
-    container_port   = 80
-  }
-
-  depends_on = [aws_alb_listener.listener_http_front]
 }
 
 resource "aws_ecs_service" "ecs_service_backend" {
@@ -371,24 +338,44 @@ resource "aws_ecs_service" "ecs_service_backend" {
   depends_on = [aws_alb_listener.listener_http_back]
 }
 
+resource "aws_ecs_service" "ecs_service_frontend" {
+  name                = "app_service_frontend"
+  cluster             = aws_ecs_cluster.ecs_cluster.id
+  task_definition     = aws_ecs_task_definition.task_definition_frontend.arn
+  launch_type         = "FARGATE"
+  desired_count       = 2
+  scheduling_strategy = "REPLICA"
+  deployment_minimum_healthy_percent = 0
+
+  network_configuration {
+    subnets          = module.network_block.public_subnets_id[*]
+    security_groups  = [aws_security_group.ecs_tasks_sg.id, aws_security_group.alb_sg.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_alb_target_group.target_gr_front.arn
+    container_name   = "app_frontend"
+    container_port   = 80
+  }
+
+  depends_on = [aws_alb_listener.listener_http_front]
+}
+
 # RDS DB ( PostgreSQL )
 resource "aws_db_instance" "db" {
-  #backup_retention_period  = 2   # in days
-  db_name              = "app_db"
-  identifier               = "app-db1"
+  db_name              = var.DB_NAME
+  identifier               = var.DB_NAME
   #db_subnet_group_name     = "${var.rds_public_subnet_group}"
   db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
   engine_version           = "10"
   instance_class           = "db.t3.micro"
-  #multi_az                 = false
-  #parameter_group_name     = "mydbparamgroup1" # if you have tuned it
   username                 = var.POSTGRES_USER
-  #password                 = "${trimspace(file("${path.module}/secrets/mydb1-password.txt"))}"
   password                 = var.POSTGRES_PASSWORD
   port                     = 5432
   publicly_accessible      = false
-  #storage_encrypted        = true # you should always do this
+  #storage_encrypted        = true
   allocated_storage        = 25 # gigabytes
   storage_type             = "gp2"
   vpc_security_group_ids   = [aws_security_group.db.id]
@@ -414,6 +401,14 @@ resource "aws_security_group" "db" {
   ingress {
     from_port = 5432
     to_port = 5432
+    protocol = "tcp"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
+
+  # Backend
+  ingress {
+    from_port = 8080
+    to_port = 8080
     protocol = "tcp"
     cidr_blocks = var.security_group_cidr_blocks
   }
