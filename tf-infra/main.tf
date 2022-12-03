@@ -180,6 +180,44 @@ resource "aws_iam_role" "ecs_service_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
 }
 
+# attach service-role: AmazonEC2ContainerServiceRole and GetParameters
+resource "aws_iam_role_policy" "ecs_service_role_policy" {
+  name = "ecs_service_role_policy"
+  role = aws_iam_role.ecs_service_role.id
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
+        }
+    ]
+}
+EOF
+}
+
+/* resource "aws_iam_policy" "ecs_service_role" {
+  name        = "test_policy"
+  description = "ecs_service_role"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:Describe*",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
+} */
+
 # attach service-role: AmazonEC2ContainerServiceRole
 resource "aws_iam_role_policy_attachment" "ecs_service_attachment" {
   role       = aws_iam_role.ecs_service_role.name
@@ -191,10 +229,42 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role_policy.json
 }
 
+# attach service-role: AmazonECSTaskExecutionRolePolicy and GetParameters
+resource "aws_iam_role_policy" "ecs_task_execution_role_policy" {
+  name = "ecs_task_execution_role_policy"
+  role = aws_iam_role.ecs_task_execution_role.id
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
+        }
+    ]
+}
+EOF
+}
+
 # attach service-role: AmazonECSTaskExecutionRolePolicy
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_attachment" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# PARAMETER STORE
+resource "aws_ssm_parameter" "dns" {
+  name        = "/app/dns_elb_name"
+  description = "DNS name for frontend task"
+  type        = "String"
+  value       = aws_alb.test-alb.dns_name
+
+  depends_on = [
+    aws_alb.test-alb
+ ]
 }
 
 # ECS CLUSTER
@@ -203,7 +273,7 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 }
 
 resource "aws_cloudwatch_log_group" "app_frontend" {
-  name = "app-log-group-frontend"
+  name = "app-log-group-frontend-NEW"
   retention_in_days = 7
 
   tags = {
@@ -223,6 +293,7 @@ resource "aws_cloudwatch_log_group" "app_backend" {
 resource "aws_ecs_task_definition" "task_definition_backend" {
   family                = "backend"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  #task_role_arn            = aws_iam_role.ecs_service_role.arn
   network_mode             = "awsvpc"
   cpu       = "256"
   memory    = "512"
@@ -274,10 +345,14 @@ DEFINITION
 resource "aws_ecs_task_definition" "task_definition_frontend" {
   family                = "frontend"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  #task_role_arn            = aws_iam_role.ecs_service_role.arn
   network_mode             = "awsvpc"
   cpu       = "256"
   memory    = "512"
   requires_compatibilities = ["FARGATE"]
+  depends_on = [
+    aws_ssm_parameter.dns
+  ]
   container_definitions = <<DEFINITION
 [{
     "name": "app_frontend",
@@ -293,10 +368,10 @@ resource "aws_ecs_task_definition" "task_definition_frontend" {
             "protocol": "tcp"
         }
     ],
-    "environment": [
+    "secrets": [
         {
-            "name": "dns_elb",
-            "value": "${aws_alb.test-alb.dns_name}"
+            "name": "dns_elb_name",
+            "valueFrom": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
         }
     ],
     "privileged": false,
@@ -306,7 +381,7 @@ resource "aws_ecs_task_definition" "task_definition_frontend" {
         "options": {
             "awslogs-group": "${aws_cloudwatch_log_group.app_frontend.name}",
             "awslogs-region": "${var.region}",
-            "awslogs-stream-prefix": "frontend-dns"
+            "awslogs-stream-prefix": "frontend"
         }
     }
  }

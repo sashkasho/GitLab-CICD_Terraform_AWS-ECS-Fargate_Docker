@@ -21,6 +21,10 @@ variable "ecr_image_backend" {
     default = ""
 }
 
+variable "account_id" {
+    default = "910702143091"
+}
+
 variable "POSTGRES_USER" {
     type = string
     default = "postgres"
