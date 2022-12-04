@@ -1,9 +1,9 @@
 # Local .terraform directories
-.terraform/*
+/tf-infra/.terraform/*
 
 # .terraform configuration files
-.terraform.*
+/tf-infra/.terraform.*
 
 # .tfstate files
-*.tfstate
-*.tfstate.*
+/tf-infra/*.tfstate
+/tf-infra/*.tfstate.*
