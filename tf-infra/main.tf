@@ -41,13 +41,13 @@ resource "aws_security_group" "alb_sg" {
   description = var.aws_security_group_description
   vpc_id      = module.network_block.vpc_id
 
-  ingress {
+  /* ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  }
+  } */
 
   ingress {
     description      = "HTTP"
@@ -96,13 +96,13 @@ resource "aws_security_group" "ecs_tasks_sg" {
     security_groups = [aws_security_group.alb_sg.id]
   }
 
-  ingress {
+  /* ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  }
+  } */
 
   egress {
     from_port   = 0
@@ -176,11 +176,6 @@ resource "aws_alb_listener" "listener_http_back" {
     type             = "forward"
   }
 }
-/* resource "aws_alb_target_group_attachment" "target_gr_attach" {
-  count = length(aws_instance.test_server)
-  target_group_arn = aws_alb_target_group.target_gr.arn
-  target_id = aws_instance.test_server[count.index].id
-} */
 
 # IAM ROLE FOR ECS CLUSTER 
 resource "aws_iam_role" "ecs_service_role" {
