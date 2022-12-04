@@ -41,13 +41,13 @@ resource "aws_security_group" "alb_sg" {
   description = var.aws_security_group_description
   vpc_id      = module.network_block.vpc_id
 
-  /* ingress {
+  ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
-    protocol         = var.protocol_tcp
+    protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  } */
+  }
 
   ingress {
     description      = "HTTP"
@@ -94,6 +94,14 @@ resource "aws_security_group" "ecs_tasks_sg" {
     to_port         = 8080
     protocol        = "tcp"
     security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  ingress {
+    description      = "SSH"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = var.security_group_cidr_blocks
   }
 
   egress {
