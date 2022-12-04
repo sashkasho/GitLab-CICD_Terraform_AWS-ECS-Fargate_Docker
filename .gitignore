@@ -1,7 +1,7 @@
 # Local .terraform directories
-tf-infra/.terraform/*
-tf-infra/global/.terraform/*
-tf-infra/modules/network/.terraform/*
+tf-infra/.terraform
+tf-infra/global/.terraform
+tf-infra/modules/network/.terraform
 
 # .terraform configuration files
 tf-infra/.terraform.*
