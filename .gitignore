@@ -18,3 +18,6 @@ tf-infra/global/*.tfstate
 tf-infra/global/*.tfstate.*
 tf-infra/modules/network/*.tfstate
 tf-infra/modules/network/*.tfstate.*
+
+# state.config file
+tf-infra/state.config
