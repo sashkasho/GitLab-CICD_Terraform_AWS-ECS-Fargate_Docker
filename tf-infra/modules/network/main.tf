@@ -1,4 +1,4 @@
-# NETWORK BLOCKS
+# NETWORK BLOCK
 
 # VPC
 resource "aws_vpc" "test_vpc" {
@@ -51,7 +51,6 @@ resource "aws_route_table" "public_rt" {
 resource "aws_route_table_association" "public_rt_assoc" {
   count = length(var.availability_zone)
   route_table_id = aws_route_table.public_rt.id
-  #subnet_id = aws_subnet.test_subnet[count.index].id
   subnet_id = element(aws_subnet.public_subnet.*.id, count.index)
 }
 
@@ -105,6 +104,5 @@ resource "aws_route_table" "private_rt" {
 resource "aws_route_table_association" "private_rt_assoc" {
   count = length(var.availability_zone)
   route_table_id = element(aws_route_table.private_rt.*.id, count.index)
-  #subnet_id = aws_subnet.test_subnet[count.index].id
   subnet_id = element(aws_subnet.private_subnet.*.id, count.index)
 }

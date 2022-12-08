@@ -21,23 +21,32 @@ variable "ecr_image_backend" {
     default = ""
 }
 
+variable "IMAGE_NAME_FRONT" {
+    default = ""
+}
+
+variable "IMAGE_NAME_BACK" {
+    default = ""
+}
+
 variable "account_id" {
-    default = "910702143091"
+    type = string
+    #default = "910702143091"
 }
 
 variable "POSTGRES_USER" {
     type = string
-    default = "postgres"
+    #default = "postgres"
 }
 
 variable "POSTGRES_PASSWORD" {
     type = string
-    default = "postgres"
+    #default = "postgres"
 }
 
 variable "DB_NAME" {
     type = string
-    default = "postgres"
+    #default = "postgres"
 }
 
 variable "aws_vpc_cidr_block" {
@@ -69,12 +78,6 @@ variable "aws_route_table_route_cidr" {
     type = string
     default = "0.0.0.0/0"
 }
-/* variable "instance_type" {
-    type = string
-} */
-/* variable "aws_security_group_name" {
-    type = string
-} */
 
 variable "aws_security_group_description" {
     type = string
@@ -92,10 +95,6 @@ variable "server_count" {
 variable "secondary_private_ips" {
     type = list(string)
 }
-
-/* variable "protocol_tcp" {
-    type = string
-} */
 
 variable "security_group_cidr_blocks" {
     type = list(string)

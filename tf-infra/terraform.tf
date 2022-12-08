@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-        bucket = "test-tf-remote-backend-bucket-111647882835674839238"
+        bucket = "app-tf-remote-backend-bucket-65746547674657465"
         key = "infra/terraform.tfstate"
         region = "ca-central-1"
-        dynamodb_table = "remote_backend_table"
+        #dynamodb_table = "app-tf-remote_backend_table"
   }
   required_providers {
     aws = {

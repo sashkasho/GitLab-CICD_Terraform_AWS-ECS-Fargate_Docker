@@ -3,18 +3,10 @@ provider "aws" {
 }
 
 # DATA BLOCKS
-data "aws_iam_policy_document" "ecs_assume_role_policy" {
+# Task role assume policy and Task execution role assume policy
+data "aws_iam_policy_document" "ecs_assume_policy" {
   statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-data "aws_iam_policy_document" "ecs_task_assume_role_policy" {
-  statement {
+    effect  = "Allow"
     actions = ["sts:AssumeRole"]
     principals {
       type        = "Service"
@@ -23,15 +15,78 @@ data "aws_iam_policy_document" "ecs_task_assume_role_policy" {
   }
 }
 
+# IAM ROLE FOR ECS CLUSTER 
+# Task IAM role
+resource "aws_iam_role" "ecs_task_role" {
+  name               = "app-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_policy.json
+}
+
+# attach service-role AmazonSSMFullAccess
+resource "aws_iam_role_policy_attachment" "ecs_task_attachment" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+}
+
+# attach ssm:GetParameters
+resource "aws_iam_role_policy" "ecs_tasks_role_policy" {
+  name = "ecs_task_role_policy"
+  role = aws_iam_role.ecs_task_role.id
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
+        }
+      ]
+    }
+EOF
+}
+
+# Task execution IAM role
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name               = "app-ecs-task-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_policy.json
+}
+
+# attach service-role: AmazonECSTaskExecutionRolePolicy
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# attach ssm:GetParameters
+resource "aws_iam_role_policy" "ecs_task_execution_role_policy" {
+  name = "ecs_task_execution_role_policy"
+  role = aws_iam_role.ecs_task_execution_role.id
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
+        }
+    ]
+}
+EOF
+}
+
 # NETWORK MODULE
 module "network_block" {
   source = "./modules/network"
   aws_vpc_cidr_block = "10.0.0.0/16"
-  #aws_subnet_cidr_block = "10.0.1.0/24"
   availability_zone = [ "ca-central-1a", "ca-central-1b", "ca-central-1d" ]
   enable_dns_support = true
   enable_dns_hostnames = true
-  #map_public_ip_on_launch = true
   aws_route_table_route_cidr = "0.0.0.0/0"
 }
 
@@ -41,13 +96,13 @@ resource "aws_security_group" "alb_sg" {
   description = var.aws_security_group_description
   vpc_id      = module.network_block.vpc_id
 
-  /* ingress {
+  ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  } */
+  }
 
   ingress {
     description      = "HTTP"
@@ -96,13 +151,13 @@ resource "aws_security_group" "ecs_tasks_sg" {
     security_groups = [aws_security_group.alb_sg.id]
   }
 
-  /* ingress {
+  ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  } */
+  }
 
   egress {
     from_port   = 0
@@ -121,10 +176,7 @@ resource "aws_key_pair" "test_key" {
 resource "aws_alb" "test-alb" {
   name               = "app-ALB"
   security_groups    = [aws_security_group.alb_sg.id]
-  #count = length(var.availability_zone)
-  #subnets            = [for id in module.network_block.public_subnets_id : id]
   subnets            = module.network_block.public_subnets_id[*]
-  #subnets         = aws_subnet.public.*.id
 
   tags = {
     Name = "app-ALB"
@@ -138,6 +190,15 @@ resource "aws_alb_target_group" "target_gr_front" {
   vpc_id   = module.network_block.vpc_id
   target_type = "ip"
 
+  health_check {
+    path                = "/"
+    port                = 80
+    protocol            = "HTTP"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    matcher             = "200"
+  }
+
   tags = {
     Name = "app-target_front"
   }
@@ -149,6 +210,15 @@ resource "aws_alb_target_group" "target_gr_back" {
   protocol = "HTTP"
   vpc_id   = module.network_block.vpc_id
   target_type = "ip"
+
+  health_check {
+    path                = "/"
+    port                = 8080
+    protocol            = "HTTP"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    matcher             = "200-499"
+  }
 
   tags = {
     Name = "app-target_back"
@@ -177,87 +247,6 @@ resource "aws_alb_listener" "listener_http_back" {
   }
 }
 
-# IAM ROLE FOR ECS CLUSTER 
-resource "aws_iam_role" "ecs_service_role" {
-  name               = "app-ecs-service-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
-}
-
-# attach service-role: AmazonEC2ContainerServiceRole and GetParameters
-resource "aws_iam_role_policy" "ecs_service_role_policy" {
-  name = "ecs_service_role_policy"
-  role = aws_iam_role.ecs_service_role.id
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ssm:GetParameters"
-            ],
-            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
-        }
-    ]
-}
-EOF
-}
-
-/* resource "aws_iam_policy" "ecs_service_role" {
-  name        = "test_policy"
-  description = "ecs_service_role"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "ec2:Describe*",
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-      },
-    ]
-  })
-} */
-
-# attach service-role: AmazonEC2ContainerServiceRole
-resource "aws_iam_role_policy_attachment" "ecs_service_attachment" {
-  role       = aws_iam_role.ecs_service_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
-}
-
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "app-ecs-task-execution-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role_policy.json
-}
-
-# attach service-role: AmazonECSTaskExecutionRolePolicy and GetParameters
-resource "aws_iam_role_policy" "ecs_task_execution_role_policy" {
-  name = "ecs_task_execution_role_policy"
-  role = aws_iam_role.ecs_task_execution_role.id
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ssm:GetParameters"
-            ],
-            "Resource": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
-        }
-    ]
-}
-EOF
-}
-
-# attach service-role: AmazonECSTaskExecutionRolePolicy
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
 # PARAMETER STORE
 resource "aws_ssm_parameter" "dns" {
   name        = "/app/dns_elb_name"
@@ -276,7 +265,7 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 }
 
 resource "aws_cloudwatch_log_group" "app_frontend" {
-  name = "app-log-group-frontend-NEW"
+  name = "app-log-group-frontend"
   retention_in_days = 7
 
   tags = {
@@ -295,8 +284,8 @@ resource "aws_cloudwatch_log_group" "app_backend" {
 
 resource "aws_ecs_task_definition" "task_definition_backend" {
   family                = "backend"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  #task_role_arn            = aws_iam_role.ecs_service_role.arn
   network_mode             = "awsvpc"
   cpu       = "256"
   memory    = "512"
@@ -347,8 +336,8 @@ DEFINITION
 
 resource "aws_ecs_task_definition" "task_definition_frontend" {
   family                = "frontend"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  #task_role_arn            = aws_iam_role.ecs_service_role.arn
   network_mode             = "awsvpc"
   cpu       = "256"
   memory    = "512"
@@ -373,7 +362,7 @@ resource "aws_ecs_task_definition" "task_definition_frontend" {
     ],
     "secrets": [
         {
-            "name": "dns_elb_name",
+            "name": "APP_ELB_DNS_NAME",
             "valueFrom": "arn:aws:ssm:${var.region}:${var.account_id}:parameter/app/dns_elb_name"
         }
     ],
@@ -444,7 +433,7 @@ resource "aws_ecs_service" "ecs_service_frontend" {
 resource "aws_db_instance" "db" {
   db_name              = var.DB_NAME
   identifier               = var.DB_NAME
-  #db_subnet_group_name     = "${var.rds_public_subnet_group}"
+  vpc_security_group_ids   = [aws_security_group.db.id]
   db_subnet_group_name     = aws_db_subnet_group.private.name
   engine                   = "postgres"
   engine_version           = "10"
@@ -452,11 +441,9 @@ resource "aws_db_instance" "db" {
   username                 = var.POSTGRES_USER
   password                 = var.POSTGRES_PASSWORD
   port                     = 5432
-  publicly_accessible      = false
-  #storage_encrypted        = true
+  publicly_accessible      = true
   allocated_storage        = 25 # gigabytes
   storage_type             = "gp2"
-  vpc_security_group_ids   = [aws_security_group.db.id]
   skip_final_snapshot    = true
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 }
@@ -489,6 +476,14 @@ resource "aws_security_group" "db" {
     to_port = 8080
     protocol = "tcp"
     cidr_blocks = var.security_group_cidr_blocks
+  }
+
+  ingress {
+    description      = "SSH"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = var.security_group_cidr_blocks
   }
 
   egress {
