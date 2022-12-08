@@ -21,15 +21,14 @@ stages:
 #     - amazon-linux-extras install docker
 #     - aws --version
 #     - docker --version
-#   script:
-#     - cd app/backend/
-#     - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
 #     - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-#     - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
-#     - cd ../frontend/
-#     - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
-#     #- aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-#     - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
+#   script:
+    - cd app/backend/
+    - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
+    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
+    - cd ../frontend/
+    - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
+    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
 
 deploy-job:
   stage: deploy
@@ -44,10 +43,11 @@ deploy-job:
     - terraform init -backend-config="state.config"
     - cd ..
     - terraform init -backend-config="state.config"
+
     - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
     - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-    - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_BACK:latest
-    - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/IMAGE_NAME_FRONT:latest
+    - export TF_VAR_ecr_image_backend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
+    - export TF_VAR_ecr_image_frontend=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
     - export TF_VAR_account_id=$AWS_ACCOUNT_ID
     - export TF_VAR_POSTGRES_USER=$POSTGRES_USER
     - export TF_VAR_POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -66,6 +66,10 @@ destroy-job:
       - '/usr/bin/env'
       - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
   script:
+    - cd tf-infra/global/
+    - terraform init -backend-config="state.config"
+    - cd ..
+    - terraform init -backend-config="state.config"
     - terraform destroy --auto-approve
   when: manual 
 

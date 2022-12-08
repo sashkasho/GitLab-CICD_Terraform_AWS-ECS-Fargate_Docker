@@ -8,8 +8,8 @@
 #ecr_image_frontend = "sholalexandra/frontend-app-zero-env:latest"
 #ecr_image_frontend = "sholalexandra/frontend-app-dockerfile-env-1:latest"
 
-#ecr_image_frontend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-backend-gitlab:latest"
-#ecr_image_backend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-frontend-gitlab:latest"
+#ecr_image_backend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-backend-gitlab:latest"
+#ecr_image_frontend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-frontend-gitlab:latest"
 
 aws_security_group_description = "Inbound: 80, Outbound: all"
 aws_security_group_description_ecs = "Inbound: 80 from ALB Security Group, Outbound: all"
