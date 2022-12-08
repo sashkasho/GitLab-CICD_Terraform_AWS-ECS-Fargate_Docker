@@ -6,30 +6,9 @@ variables:
   IMAGE_NAME_FRONT: app-frontend-gitlab
 
 stages:
-  - build-frontend
   - build-push
   - deploy
   - destroy
-
-build-frontend-job:
-  stage: build-frontend
-  image: node:16.18.0-alpine
-  variables:
-    APP_CACHE_PATH_FRONTEND: "$CI_PROJECT_DIR/app/frontend/node_modules"
-    APP_OUTPUT_PATH_FRONTEND: "$CI_PROJECT_DIR/app/frontend/dist/shop"
-  script:
-    - cd app/frontend/
-    - npm install
-    - ./node_modules/.bin/ng build --prod
-  after_script:
-    - cp $PROJECT_PATH/frontend/Dockerfile $APP_OUTPUT_PATH_FRONTEND
-  cache:
-    paths:
-      - $APP_CACHE_PATH_FRONTEND
-  artifacts:
-    paths:
-      - $APP_OUTPUT_PATH_FRONTEND
-    expire_in: 1d
 
 build-push-job:
   stage: build-push

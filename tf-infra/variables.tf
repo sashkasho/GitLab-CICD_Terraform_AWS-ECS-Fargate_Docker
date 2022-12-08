@@ -21,14 +21,6 @@ variable "ecr_image_backend" {
     default = ""
 }
 
-variable "IMAGE_NAME_FRONT" {
-    default = ""
-}
-
-variable "IMAGE_NAME_BACK" {
-    default = ""
-}
-
 variable "account_id" {
     type = string
     #default = "910702143091"

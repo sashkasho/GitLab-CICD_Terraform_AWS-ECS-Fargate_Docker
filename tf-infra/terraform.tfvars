@@ -4,8 +4,9 @@
 #ecr_image_frontend = "sholalexandra/app-frontend:latest"
 #ecr_image_backend = "sholalexandra/app-backend:latest"
 
-/* ecr_image_backend = "sholalexandra/backend-app-db-env:latest"
-ecr_image_frontend = "sholalexandra/frontend-app-zero-env:latest" */
+#ecr_image_backend = "sholalexandra/backend-app-db-env:latest"
+#ecr_image_frontend = "sholalexandra/frontend-app-zero-env:latest"
+#ecr_image_frontend = "sholalexandra/frontend-app-dockerfile-env-1:latest"
 
 #ecr_image_frontend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-backend-gitlab:latest"
 #ecr_image_backend = "910702143091.dkr.ecr.ca-central-1.amazonaws.com/app-frontend-gitlab:latest"
