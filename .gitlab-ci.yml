@@ -60,7 +60,6 @@ deploy-job:
 destroy-job:
   stage: destroy
   image:
-    #name: hashicorp/terraform:light
     name: registry.gitlab.com/gitlab-org/gitlab-build-images:terraform
     entrypoint:
       - '/usr/bin/env'
