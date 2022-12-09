@@ -6,29 +6,29 @@ variables:
   IMAGE_NAME_FRONT: app-frontend-gitlab
 
 stages:
-  # - build-push
+  - build-push
   - deploy
   - destroy
 
-# build-push-job:
-#   stage: build-push
-#   image: 
-#     name: amazon/aws-cli
-#     entrypoint: [""]
-#   services:
-#     - docker:dind
-#   before_script:
-#     - amazon-linux-extras install docker
-#     - aws --version
-#     - docker --version
-#     - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-#   script:
-    # - cd app/backend/
-    # - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
-    # - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
-    # - cd ../frontend/
-    # - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
-    # - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
+build-push-job:
+  stage: build-push
+  image: 
+    name: amazon/aws-cli
+    entrypoint: [""]
+  services:
+    - docker:dind
+  before_script:
+    - amazon-linux-extras install docker
+    - aws --version
+    - docker --version
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+  script:
+    - cd app/backend/
+    - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest .
+    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_BACK:latest
+    - cd ../frontend/
+    - docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest .
+    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME_FRONT:latest
 
 deploy-job:
   stage: deploy
