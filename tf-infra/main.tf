@@ -96,13 +96,13 @@ resource "aws_security_group" "alb_sg" {
   description = var.aws_security_group_description
   vpc_id      = module.network_block.vpc_id
 
-  ingress {
+  /* ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  }
+  } */
 
   ingress {
     description      = "HTTP"
@@ -151,13 +151,13 @@ resource "aws_security_group" "ecs_tasks_sg" {
     security_groups = [aws_security_group.alb_sg.id]
   }
 
-  ingress {
+  /* ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = var.security_group_cidr_blocks
-  }
+  } */
 
   egress {
     from_port   = 0
@@ -247,6 +247,71 @@ resource "aws_alb_listener" "listener_http_back" {
   }
 }
 
+# RDS DB ( PostgreSQL )
+resource "aws_db_instance" "db" {
+  db_name              = var.DB_NAME
+  identifier               = var.DB_NAME
+  vpc_security_group_ids   = [aws_security_group.db.id]
+  db_subnet_group_name     = aws_db_subnet_group.private.name
+  engine                   = "postgres"
+  engine_version           = "10"
+  instance_class           = "db.t3.micro"
+  username                 = var.POSTGRES_USER
+  password                 = var.POSTGRES_PASSWORD
+  port                     = 5432
+  publicly_accessible      = false
+  allocated_storage        = 25 # gigabytes
+  storage_type             = "gp2"
+  skip_final_snapshot    = true
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+}
+
+resource "aws_db_subnet_group" "private" {
+  name       = "private"
+  subnet_ids = module.network_block.private_subnets_id[*]
+
+  tags = {
+    Name = "app-private-subnet-group"
+  }
+}
+
+resource "aws_security_group" "db" {
+  name = "app_db"
+  description = "RDS postgres servers"
+  vpc_id = module.network_block.vpc_id
+
+  # Only postgres in
+  ingress {
+    from_port = 5432
+    to_port = 5432
+    protocol = "tcp"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
+
+  /* # Backend
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
+
+  ingress {
+    description      = "SSH"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = var.security_group_cidr_blocks
+  } */
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = var.security_group_cidr_blocks
+  }
+}
+
 # PARAMETER STORE
 resource "aws_ssm_parameter" "dns" {
   name        = "/app/dns_elb_name"
@@ -262,24 +327,6 @@ resource "aws_ssm_parameter" "dns" {
 # ECS CLUSTER
 resource "aws_ecs_cluster" "ecs_cluster" {
   name = "app_ecs_cluster"
-}
-
-resource "aws_cloudwatch_log_group" "app_frontend" {
-  name = "app-log-group-frontend"
-  retention_in_days = 7
-
-  tags = {
-    Name = "app-log-group-frontend"
-  }
-}
-
-resource "aws_cloudwatch_log_group" "app_backend" {
-  name = "app-log-group-backend"
-  retention_in_days = 7
-
-  tags = {
-    Name = "app-log-group-backend"
-  }
 }
 
 resource "aws_ecs_task_definition" "task_definition_backend" {
@@ -429,67 +476,21 @@ resource "aws_ecs_service" "ecs_service_frontend" {
   depends_on = [aws_alb_listener.listener_http_front]
 }
 
-# RDS DB ( PostgreSQL )
-resource "aws_db_instance" "db" {
-  db_name              = var.DB_NAME
-  identifier               = var.DB_NAME
-  vpc_security_group_ids   = [aws_security_group.db.id]
-  db_subnet_group_name     = aws_db_subnet_group.private.name
-  engine                   = "postgres"
-  engine_version           = "10"
-  instance_class           = "db.t3.micro"
-  username                 = var.POSTGRES_USER
-  password                 = var.POSTGRES_PASSWORD
-  port                     = 5432
-  publicly_accessible      = true
-  allocated_storage        = 25 # gigabytes
-  storage_type             = "gp2"
-  skip_final_snapshot    = true
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-}
-
-resource "aws_db_subnet_group" "private" {
-  name       = "private"
-  subnet_ids = module.network_block.private_subnets_id[*]
+# CLOUDWATCH LOGS
+resource "aws_cloudwatch_log_group" "app_frontend" {
+  name = "app-log-group-frontend"
+  retention_in_days = 7
 
   tags = {
-    Name = "app-private-subnet-group"
+    Name = "app-log-group-frontend"
   }
 }
 
-resource "aws_security_group" "db" {
-  name = "app_db"
-  description = "RDS postgres servers"
-  vpc_id = module.network_block.vpc_id
+resource "aws_cloudwatch_log_group" "app_backend" {
+  name = "app-log-group-backend"
+  retention_in_days = 7
 
-  # Only postgres in
-  ingress {
-    from_port = 5432
-    to_port = 5432
-    protocol = "tcp"
-    cidr_blocks = var.security_group_cidr_blocks
-  }
-
-  # Backend
-  ingress {
-    from_port = 8080
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = var.security_group_cidr_blocks
-  }
-
-  ingress {
-    description      = "SSH"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = var.security_group_cidr_blocks
-  }
-
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = var.security_group_cidr_blocks
+  tags = {
+    Name = "app-log-group-backend"
   }
 }
