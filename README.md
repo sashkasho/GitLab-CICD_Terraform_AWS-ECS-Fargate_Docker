@@ -1,6 +1,6 @@
 # Final project: GitLab CI/CD + Terraform + AWS ECS Fargate + Docker 
 
-A project using Gitlab CI/CD to automatically create and push new Docker images to AWS ECR and deploy them to ECS Fargate. The AWS infrastructure is written using Terraform and is deployed via Gitlab CI/CD.
+#### A project using Gitlab CI/CD to automatically create and push new Docker images to AWS ECR and deploy them to ECS Fargate. The AWS infrastructure is written using Terraform and is deployed via Gitlab CI/CD.
 
 ![Steps](./tf-infra/Steps.PNG)
 
