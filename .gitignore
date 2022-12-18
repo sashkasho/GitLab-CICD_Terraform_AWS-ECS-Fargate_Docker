@@ -1,20 +1,20 @@
 # Local .terraform directories
-tf-infra/.terraform
-tf-infra/.terraform/*
-tf-infra/global/.terraform
-tf-infra/global/.terraform/*
-tf-infra/modules/network/.terraform
-tf-infra/modules/network/.terraform/*
+/tf-infra/.terraform
+/tf-infra/.terraform/*
+/tf-infra/global/.terraform
+/tf-infra/global/.terraform/*
+/tf-infra/modules/network/.terraform
+/tf-infra/modules/network/.terraform/*
 
 # .terraform configuration files
-tf-infra/.terraform.*
-tf-infra/global/.terraform.*
-tf-infra/modules/network/.terraform.*
+/tf-infra/.terraform.*
+/tf-infra/global/.terraform.*
+/tf-infra/modules/network/.terraform.*
 
 # .tfstate files
-tf-infra/*.tfstate
-tf-infra/*.tfstate.*
-tf-infra/global/*.tfstate
-tf-infra/global/*.tfstate.*
-tf-infra/modules/network/*.tfstate
-tf-infra/modules/network/*.tfstate.*
+/tf-infra/*.tfstate
+/tf-infra/*.tfstate.*
+/tf-infra/global/*.tfstate
+/tf-infra/global/*.tfstate.*
+/tf-infra/modules/network/*.tfstate
+/tf-infra/modules/network/*.tfstate.*
