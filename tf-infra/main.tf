@@ -304,12 +304,12 @@ resource "aws_security_group" "db" {
     cidr_blocks      = var.security_group_cidr_blocks
   } */
 
-  egress {
+  /* egress {
     from_port = 0
     to_port = 0
     protocol = "-1"
     cidr_blocks = var.security_group_cidr_blocks
-  }
+  } */
 }
 
 # PARAMETER STORE
